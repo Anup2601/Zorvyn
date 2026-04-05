@@ -60,7 +60,98 @@ Optional:
 SWAGGER_SERVER_URL=http://localhost:5000
 SEED_ADMIN_EMAIL=anup.kumar.admin@example.com
 SEED_ADMIN_PASSWORD=Anup@12345
+CORS_ORIGINS=http://localhost:3000
 ```
+
+Production notes:
+- Set `CORS_ORIGINS` to your frontend URL(s), comma-separated.
+- Example: `CORS_ORIGINS=https://zorvyn-frontend.vercel.app,https://www.zorvyn.com`
+- For production cookie auth across domains, keep `NODE_ENV=production` and use HTTPS.
+
+## Deploy to Render with Supabase (Step by Step)
+
+### 1) Create Supabase PostgreSQL connection string
+
+1. Open Supabase project.
+2. Go to Database -> Connection string.
+3. Copy URI format and use password.
+4. Ensure URI includes `sslmode=require`.
+
+Example:
+
+```text
+postgresql://postgres:YOUR_PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres?sslmode=require
+```
+
+### 2) Push code to GitHub
+
+```bash
+git add .
+git commit -m "prepare backend for production deploy"
+git push
+```
+
+### 3) Create Render Web Service
+
+1. Render Dashboard -> New -> Web Service.
+2. Connect your GitHub repo.
+3. Root Directory: `backend`
+4. Runtime: `Docker`
+5. Branch: your deploy branch (usually `main`).
+6. Auto Deploy: ON.
+
+Render will use this Docker startup command from `Dockerfile`:
+- `npx prisma migrate deploy && npm run start`
+
+### 4) Add Render environment variables
+
+In Render service -> Environment, set:
+
+```env
+NODE_ENV=production
+PORT=5000
+DATABASE_URL=<your supabase uri with sslmode=require>
+JWT_SECRET=<openssl rand -hex 32 output>
+SWAGGER_SERVER_URL=https://<your-render-service>.onrender.com
+CORS_ORIGINS=https://<your-frontend-domain>
+```
+
+Optional seed vars (only if you want custom admin seed):
+
+```env
+SEED_ADMIN_EMAIL=anup.kumar.admin@example.com
+SEED_ADMIN_PASSWORD=Anup@12345
+```
+
+### 5) Deploy and verify
+
+1. Trigger deploy in Render.
+2. Wait for build + start to pass.
+3. Check:
+   - `GET /health`
+   - `GET /api-docs`
+4. Test login and a protected route.
+
+### 6) Seed admin user (one-time)
+
+Use Render Shell for the running service:
+
+```bash
+npm run db:seed
+```
+
+### 7) Point frontend to Render API
+
+- Frontend API base URL should be:
+  `https://<your-render-service>.onrender.com`
+- If frontend and backend are different domains, include frontend domain in `CORS_ORIGINS`.
+
+### 8) Common Render + Supabase issues
+
+- `P1000` / auth errors: wrong `DATABASE_URL` password.
+- Connection/TLS errors: missing `sslmode=require`.
+- 401 with cookies across domains: confirm `NODE_ENV=production` and HTTPS URL in frontend.
+- CORS blocked: add exact frontend origin to `CORS_ORIGINS` (no trailing slash).
 
 ## Run Locally
 

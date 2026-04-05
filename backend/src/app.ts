@@ -1,4 +1,3 @@
-console.log("APP.JS IS RUNNING 🔥");
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -14,9 +13,32 @@ import { notFound, errorHandler } from './middlewares/errorMiddleware.ts';
 
 const app = express();
 
+const allowedOrigins = (process.env.CORS_ORIGINS ?? process.env.FRONTEND_ORIGIN ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 app.use(
   cors({
-    origin: true,
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.length === 0) {
+        return callback(null, process.env.NODE_ENV !== 'production');
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   }),
 );

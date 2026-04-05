@@ -25,10 +25,13 @@ const generateToken = (user: TokenUser, res: any) => {
         }
     )
 
+    const isProduction = process.env.NODE_ENV === 'production'
+    const cookieSameSite = isProduction ? 'none' : 'lax'
+
     res.cookie("token", token, {
         httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
+        secure: isProduction,
+        sameSite: cookieSameSite,
         maxAge: 7 * 24 * 60 * 60 * 1000
     })
 
