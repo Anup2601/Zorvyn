@@ -101,7 +101,11 @@ git push
 6. Auto Deploy: ON.
 
 Render will use this Docker startup command from `Dockerfile`:
-- `npx prisma migrate deploy && npm run start`
+- `npm run start`
+
+Important:
+- Do not set `PORT` manually in Render. Render provides the port value automatically.
+- Run migrations separately once after deploy if needed, from Render Shell: `npx prisma migrate deploy`.
 
 ### 4) Add Render environment variables
 
@@ -109,7 +113,6 @@ In Render service -> Environment, set:
 
 ```env
 NODE_ENV=production
-PORT=5000
 DATABASE_URL=<your supabase uri with sslmode=require>
 JWT_SECRET=<openssl rand -hex 32 output>
 SWAGGER_SERVER_URL=https://<your-render-service>.onrender.com
